@@ -1,5 +1,7 @@
-package com.toki.openapiserver.dto;
+package com.toki.openapiserver.place.dto;
 
+import com.toki.openapiserver.area.dto.AreaDTO;
+import com.toki.openapiserver.area.dto.PlaceCategoryDTO;
 import lombok.Builder;
 
 @Builder

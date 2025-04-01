@@ -1,6 +1,6 @@
-package com.toki.openapiserver.repository;
+package com.toki.openapiserver.area.repository;
 
-import com.toki.openapiserver.domain.Area;
+import com.toki.openapiserver.area.domain.Area;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 

@@ -1,8 +1,7 @@
-package com.toki.openapiserver.domain;
+package com.toki.openapiserver.area.domain;
 
 
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

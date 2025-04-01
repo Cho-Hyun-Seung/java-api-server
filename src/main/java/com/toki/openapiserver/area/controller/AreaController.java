@@ -1,4 +1,4 @@
-package com.toki.openapiserver.controller;
+package com.toki.openapiserver.area.controller;
 
 import org.springframework.stereotype.Controller;
 

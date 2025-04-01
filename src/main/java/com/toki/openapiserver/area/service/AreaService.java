@@ -1,8 +1,8 @@
-package com.toki.openapiserver.service;
+package com.toki.openapiserver.area.service;
 
-import com.toki.openapiserver.domain.Area;
-import com.toki.openapiserver.dto.AreaDTO;
-import com.toki.openapiserver.repository.AreaRepository;
+import com.toki.openapiserver.area.domain.Area;
+import com.toki.openapiserver.area.dto.AreaDTO;
+import com.toki.openapiserver.area.repository.AreaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;

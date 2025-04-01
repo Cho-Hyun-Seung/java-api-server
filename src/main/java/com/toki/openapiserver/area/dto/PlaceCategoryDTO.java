@@ -1,4 +1,4 @@
-package com.toki.openapiserver.dto;
+package com.toki.openapiserver.area.dto;
 
 
 import lombok.Builder;
