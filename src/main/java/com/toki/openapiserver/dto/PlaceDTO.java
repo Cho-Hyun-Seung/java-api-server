@@ -14,7 +14,7 @@ public class PlaceDTO {
     private PlaceCategoryDTO placeCategoryDTO;
 //    private String categoryName;
     /* 도 명칭과 시군구 명칭은 Region과 연결?*/
-    private RegionDTO regionDTO;
+    private AreaDTO regionDTO;
 //    private int areaCode;       // 도 코드
 //    private int sigunguCode;    // 시군구 코드
     private double coordX;      // x 좌표

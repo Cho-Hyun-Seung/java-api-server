@@ -24,6 +24,15 @@ repositories {
 }
 
 dependencies {
+
+    // https://mvnrepository.com/artifact/org.mapstruct/mapstruct-processor
+    implementation 'org.mapstruct:mapstruct-processor:1.6.3'
+    // https://mvnrepository.com/artifact/org.mapstruct/mapstruct
+    implementation 'org.mapstruct:mapstruct:1.6.3'
+
+    // https://mvnrepository.com/artifact/com.googlecode.json-simple/json-simple
+    implementation 'com.googlecode.json-simple:json-simple:1.1.1'
+
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
