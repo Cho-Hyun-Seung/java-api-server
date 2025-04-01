@@ -16,7 +16,7 @@ public class Area {
 
     private int areaCode;
 
-    private String areaTitle;
+    private String areaName;
 
-    private Integer parentAreaCode;
+    private Integer parentAreaId;
 }

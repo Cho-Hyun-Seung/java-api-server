@@ -2,13 +2,14 @@ package com.toki.openapiserver.service;
 
 import com.toki.openapiserver.domain.Area;
 import com.toki.openapiserver.dto.AreaDTO;
-import com.toki.openapiserver.mapper.AreaMapper;
 import com.toki.openapiserver.repository.AreaRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -20,15 +21,14 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class AreaService {
-    private AreaRepository areaRepository;
+    private final AreaRepository areaRepository;
+    private final ModelMapper modelMapper;
 
     @Value("${open-api.api-key}")
     private String openApiKey;
 
-    public AreaService(AreaRepository areaRepository) {
-        this.areaRepository = areaRepository;
-    }
 
     //
     /* 루트 지역 불러오기 */
@@ -76,8 +76,8 @@ public class AreaService {
 
                 AreaDTO area = AreaDTO.builder()
                         .areaCode(code)
-                        .areaTitle(name)
-                        .parentAreaName(null)
+                        .areaName(name)
+                        .parentAreaId(null)
                         .build();
 
                 areaDtoList.add(area);
@@ -86,9 +86,13 @@ public class AreaService {
             throw new RuntimeException(e);
         }
 
+
         // 4. dto to domain
 //        List<Area> areaList = AreaMapper.INSTANCE.areaDtoToArea(AreaDTO );
-        List<Area> areaList = areaDtoList.stream().map(AreaMapper.INSTANCE::areaDtoToArea).toList();
+//        List<Area> areaList = areaDtoList.stream().map(AreaMapper.INSTANCE::areaDtoToArea).toList();
+        List<Area> areaList = areaDtoList.stream()
+                .map(area -> modelMapper.map(area, Area.class))
+                .toList();
 
         /* ??? 함수 분리*/
         // 5. db 데이터 입력하기
