@@ -21,7 +21,7 @@ public class Area {
     private String areaName;
 
     @Setter
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)  // 필요한 경우에 부모 객체 가져옴!!
     @JoinColumn(name = "parent_area_id")
     private Area parentArea;
 
