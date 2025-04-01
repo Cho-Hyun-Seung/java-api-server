@@ -1,22 +1,29 @@
 package com.toki.openapiserver.domain;
 
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
+@Getter
 @NoArgsConstructor
 public class Area {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int areaId;
 
+    @Setter
     private int areaCode;
 
+    @Setter
     private String areaName;
 
-    private Integer parentAreaId;
+    @Setter
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_area_id")
+    private Area parentArea;
+
 }
