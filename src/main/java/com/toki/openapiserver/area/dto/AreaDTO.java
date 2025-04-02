@@ -1,14 +1,12 @@
 package com.toki.openapiserver.area.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
+@ToString
 public class AreaDTO {
     private int areaCode;
     private String areaName;

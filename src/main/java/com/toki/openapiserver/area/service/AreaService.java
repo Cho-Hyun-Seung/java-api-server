@@ -1,14 +1,11 @@
 package com.toki.openapiserver.area.service;
 
 import com.toki.openapiserver.area.domain.Area;
-import com.toki.openapiserver.area.dto.AreaDTO;
+import com.toki.openapiserver.area.dto.*;
 import com.toki.openapiserver.area.repository.AreaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -29,21 +26,9 @@ public class AreaService {
     @Value("${open-api.api-key}")
     private String openApiKey;
 
-    private JSONArray parseData(String data) throws ParseException {
-        JSONParser jsonParser = new JSONParser();
-
-        JSONObject jsonData = (JSONObject) jsonParser.parse(data);
-        JSONObject response = (JSONObject) jsonData.get("response");
-        JSONObject body = (JSONObject) response.get("body");
-        JSONObject items = (JSONObject) body.get("items");
-        JSONArray itemArr = (JSONArray) items.get("item");
-
-        return itemArr;
-    }
-
     //
     /* 루트 지역 GET*/
-    protected List<AreaDTO> getRootArea(){
+    protected List<AreaDTO> getRootArea() {
         List<AreaDTO> areaDtoList = new ArrayList<>();
         // 2. 데이터 가져오기
         //  2.1. 객체 생성
@@ -53,7 +38,7 @@ public class AreaService {
                 .build();
 
         //  2.2. 객체 값 입력
-        String response = restClient.get()
+        AreaResponse areaResponse = restClient.get()
                 .uri(uriBuilder ->
                         uriBuilder.path("/B551011/KorService1/areaCode1")
                                 .queryParam("serviceKey", openApiKey)
@@ -66,34 +51,33 @@ public class AreaService {
                                 .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
-                .body(String.class);
+                .body(AreaResponse.class);
 
-        /* TODO 여기서 200 번 코드가 오지 않을 경우가 존재함! */
-        // 3. JSON to DTO
-        try {
-            JSONArray jsonArray = parseData(response);
-            for (Object itemObj : jsonArray) {
-                JSONObject item = (JSONObject) itemObj;
-//            System.out.println(Integer.parseInt(item.get("code").toString()));
-                int code = Integer.parseInt(item.get("code").toString());
-                String name = item.get("name").toString();
+        Response response = areaResponse.response();
+        AreaReponseHeader header = response.header();
+        /* 오류가 발생 한 경우*/
+        if (!header.resultCode().equals("0000")) {
+            throw new RuntimeException(header.resultMsg());
+        }
 
-                AreaDTO area = AreaDTO.builder()
-                        .areaCode(code)
-                        .areaName(name)
-                        .parentAreaId(null)
-                        .build();
+        ArrayList<Item> itemList = response.body().items().item();
 
-                areaDtoList.add(area);
-            }
-        } catch (ParseException e) {
-            throw new RuntimeException(e);
+        for (Item item : itemList) {
+            int code = item.code();
+            String name = item.name();
+
+            AreaDTO area = AreaDTO.builder()
+                    .areaCode(code)
+                    .areaName(name)
+                    .parentAreaId(null)
+                    .build();
+
+            areaDtoList.add(area);
         }
         return areaDtoList;
     }
 
-    //    @Transactional
-    private List<AreaDTO> getChildArea(List<AreaDTO> rootAreaDtoList) {
+    protected List<AreaDTO> getChildArea(List<AreaDTO> rootAreaDtoList) {
         List<AreaDTO> areaDtoList = new ArrayList<>();
         // 2. 데이터 가져오기
         //  2.1. 객체 생성
@@ -102,12 +86,13 @@ public class AreaService {
                 .baseUrl("http://apis.data.go.kr")
                 .build();
 
-        for(AreaDTO rootAreaDTO : rootAreaDtoList){
+        for (AreaDTO rootAreaDTO : rootAreaDtoList) {
             /* 루트 지역 ID 가져오기 */
             Area parentArea = areaRepository.findByAreaName(rootAreaDTO.getAreaName());
             Integer parentAreaId = parentArea.getAreaId();
 
-            String response = restClient.get()
+            //  2.2. 객체 값 입력
+            AreaResponse areaResponse = restClient.get()
                     .uri(uriBuilder ->
                             uriBuilder.path("/B551011/KorService1/areaCode1")
                                     .queryParam("serviceKey", openApiKey)
@@ -115,32 +100,35 @@ public class AreaService {
                                     .queryParam("MobileOS", "ETC")
                                     .queryParam("MobileApp", "GULHAN")
                                     .queryParam("_type", "json")
-                                    .queryParam("areaCode", rootAreaDTO.getAreaCode())
+                                    .queryParam("areaCode", parentArea.getAreaCode())
                                     .queryParam("numOfRows", 300)
                                     .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .body(String.class);
+                    .body(AreaResponse.class);
+
+            Response response = areaResponse.response();
+            AreaReponseHeader header = response.header();
+            /* 오류가 발생 한 경우*/
+            if (!header.resultCode().equals("0000")) {
+                throw new RuntimeException(header.resultMsg());
+            }
+
+            ArrayList<Item> itemList = response.body().items().item();
 
             /* TODO 여기서 200 번 코드가 오지 않을 경우가 존재함! */
             // 3. JSON to DTO
-            try {
-                JSONArray jsonArray = parseData(response);
-                for (Object itemObj : jsonArray) {
-                    JSONObject item = (JSONObject) itemObj;
-                    int code = Integer.parseInt(item.get("code").toString());
-                    String name = item.get("name").toString();
+            for (Item item : itemList) {
+                int code = item.code();
+                String name = item.name();
 
-                    AreaDTO area = AreaDTO.builder()
-                            .areaCode(code)
-                            .areaName(name)
-                            .parentAreaId(parentAreaId)
-                            .build();
+                AreaDTO area = AreaDTO.builder()
+                        .areaCode(code)
+                        .areaName(name)
+                        .parentAreaId(parentAreaId)
+                        .build();
 
-                    areaDtoList.add(area);
-                }
-            } catch (ParseException e) {
-                throw new RuntimeException(e);
+                areaDtoList.add(area);
             }
         }
         return areaDtoList;
@@ -148,7 +136,7 @@ public class AreaService {
 
     /* 자식 지역 갱신 요청 */
     @Transactional
-    public void saveChildArea(){
+    public void saveChildArea() {
         List<AreaDTO> rootAreaDtoList = getRootArea();
         List<AreaDTO> areaDTOList = getChildArea(rootAreaDtoList);
 
@@ -158,7 +146,7 @@ public class AreaService {
                     area.setAreaCode(areaDto.getAreaCode());
                     area.setAreaName(areaDto.getAreaName());
                     Area parentArea = null;
-                    if(areaDto.getParentAreaId() != null){
+                    if (areaDto.getParentAreaId() != null) {
                         parentArea = areaRepository.findByAreaId(areaDto.getParentAreaId());
                     }
                     area.setParentArea(parentArea);
@@ -171,7 +159,7 @@ public class AreaService {
 
     /* 부모 지역 저장 요청 */
     @Transactional
-    public void saveRootArea(){
+    public void saveRootArea() {
         List<AreaDTO> areaDtoList = getRootArea();
         List<Area> areaList = areaDtoList.stream()
                 .map(area -> modelMapper.map(area, Area.class))
