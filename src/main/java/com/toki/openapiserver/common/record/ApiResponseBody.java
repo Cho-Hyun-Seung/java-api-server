@@ -1,6 +1,6 @@
-package com.toki.openapiserver.area.dto;
+package com.toki.openapiserver.common.record;
 
-public record AreaResponseBody(
+public record ApiResponseBody(
         Items items,
         int numOfRows,
         int pageNo,

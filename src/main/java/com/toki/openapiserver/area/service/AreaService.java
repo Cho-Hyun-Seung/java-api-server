@@ -1,8 +1,15 @@
 package com.toki.openapiserver.area.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toki.openapiserver.area.domain.Area;
 import com.toki.openapiserver.area.dto.*;
 import com.toki.openapiserver.area.repository.AreaRepository;
+
+import com.toki.openapiserver.common.record.ApiResponse;
+import com.toki.openapiserver.common.record.ApiResponseHeader;
+
+import com.toki.openapiserver.common.record.Response;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -14,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
+
 import java.util.List;
 
 @Service
@@ -38,7 +46,7 @@ public class AreaService {
                 .build();
 
         //  2.2. 객체 값 입력
-        AreaResponse areaResponse = restClient.get()
+        ApiResponse areaResponse = restClient.get()
                 .uri(uriBuilder ->
                         uriBuilder.path("/B551011/KorService1/areaCode1")
                                 .queryParam("serviceKey", openApiKey)
@@ -51,16 +59,17 @@ public class AreaService {
                                 .build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
-                .body(AreaResponse.class);
+                .body(ApiResponse.class);
 
         Response response = areaResponse.response();
-        AreaReponseHeader header = response.header();
+        ApiResponseHeader header = response.header();
         /* 오류가 발생 한 경우*/
         if (!header.resultCode().equals("0000")) {
             throw new RuntimeException(header.resultMsg());
         }
-
-        ArrayList<Item> itemList = response.body().items().item();
+        ObjectMapper mapper = new ObjectMapper();
+        List<Item> itemList = mapper.convertValue(response.body().items().item(),
+                new TypeReference<List<Item>>() {});
 
         for (Item item : itemList) {
             int code = item.code();
@@ -92,7 +101,7 @@ public class AreaService {
             Integer parentAreaId = parentArea.getAreaId();
 
             //  2.2. 객체 값 입력
-            AreaResponse areaResponse = restClient.get()
+            ApiResponse areaResponse = restClient.get()
                     .uri(uriBuilder ->
                             uriBuilder.path("/B551011/KorService1/areaCode1")
                                     .queryParam("serviceKey", openApiKey)
@@ -105,16 +114,16 @@ public class AreaService {
                                     .build())
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
-                    .body(AreaResponse.class);
+                    .body(ApiResponse.class);
 
             Response response = areaResponse.response();
-            AreaReponseHeader header = response.header();
+            ApiResponseHeader header = response.header();
             /* 오류가 발생 한 경우*/
             if (!header.resultCode().equals("0000")) {
                 throw new RuntimeException(header.resultMsg());
             }
 
-            ArrayList<Item> itemList = response.body().items().item();
+            ArrayList<Item> itemList = (ArrayList<Item>) response.body().items().item();
 
             /* TODO 여기서 200 번 코드가 오지 않을 경우가 존재함! */
             // 3. JSON to DTO
