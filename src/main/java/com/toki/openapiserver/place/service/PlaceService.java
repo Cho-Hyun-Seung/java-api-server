@@ -7,12 +7,16 @@ import com.toki.openapiserver.common.record.ApiResponseHeader;
 import com.toki.openapiserver.area.repository.AreaRepository;
 import com.toki.openapiserver.common.record.Response;
 
+import com.toki.openapiserver.place.domain.CategoryType;
+import com.toki.openapiserver.place.domain.Place;
 import com.toki.openapiserver.place.dto.areabaseplace.Item;
 import com.toki.openapiserver.place.dto.detail.PlaceDTO;
 import com.toki.openapiserver.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.geo.Point;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -123,8 +127,9 @@ public class PlaceService {
 
             ObjectMapper mapper = new ObjectMapper();
 
-            List<com.toki.openapiserver.place.dto.detail.museum.Item> placeInfo = mapper.convertValue(response.body().items().item(),
-                    new TypeReference<List<com.toki.openapiserver.place.dto.detail.museum.Item>>() {});
+            List<com.toki.openapiserver.place.dto.detail.common.Item> placeInfo = mapper.convertValue(response.body().items().item(),
+                    new TypeReference<List<com.toki.openapiserver.place.dto.detail.common.Item>>() {
+                    });
 
             place.setOverview(placeInfo.get(0).overview());
             placeDtoList.add(place);
@@ -132,5 +137,90 @@ public class PlaceService {
 
 
         return placeDtoList;
+    }
+
+    protected ArrayList<PlaceDTO> getPlaceRestDate(ArrayList<PlaceDTO> placeList, CategoryType category) {
+        ArrayList<PlaceDTO> placeDtoList = new ArrayList<>();
+
+        RestClient restClient = RestClient.builder()
+                .baseUrl("http://apis.data.go.kr")
+                .build();
+
+        for (PlaceDTO place : placeList) {
+            ApiResponse placeResponse = restClient.get().uri(uriBuilder ->
+                            uriBuilder.path("/B551011/KorService1/detailIntro1")
+                                    .queryParam("serviceKey", openApiKey)
+                                    .queryParam("pageNo", 1)
+                                    .queryParam("MobileOS", "ETC")
+                                    .queryParam("MobileApp", "GULHAN")
+                                    .queryParam("_type", "json")
+                                    .queryParam("numOfRows", 3000)
+                                    .queryParam("contentId", place.getContentid())
+                                    .queryParam("contentTypeId", place.getContentTypeId())
+                                    .build())
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .body(ApiResponse.class);
+
+            Response response = placeResponse.response();
+            ApiResponseHeader header = response.header();
+
+            if (!header.resultCode().equals("0000")) {
+                throw new RuntimeException(header.resultMsg());
+            }
+
+            ObjectMapper mapper = new ObjectMapper();
+
+            if(category.equals(CategoryType.MUSEUM)){
+                List<com.toki.openapiserver.place.dto.detail.museum.Item> placeInfo = mapper.convertValue(response.body().items().item(),
+                        new TypeReference<List<com.toki.openapiserver.place.dto.detail.museum.Item>>() {
+                        });
+
+                place.setOverview(placeInfo.get(0).restdateculture());
+                placeDtoList.add(place);
+            }else{
+                List<com.toki.openapiserver.place.dto.detail.tourspot.Item> placeInfo = mapper.convertValue(response.body().items().item(),
+                        new TypeReference<List<com.toki.openapiserver.place.dto.detail.tourspot.Item>>() {
+                        });
+
+                place.setOverview(placeInfo.get(0).restdate());
+                placeDtoList.add(place);
+            }
+        }
+
+
+        return placeDtoList;
+    }
+
+
+    public void insertPlace(int contentTypeId, String cat2, String cat3) {
+        ArrayList<PlaceDTO> placeList = getPlace(contentTypeId, cat2, cat3);
+        ArrayList<PlaceDTO> integrationPlaceList = getPlaceDetail(placeList);
+        CategoryType categoryType = null;
+
+        if(cat3.equals("A02060100")){
+            categoryType = CategoryType.MUSEUM;
+        }
+        if(cat3.equals("A02010700")){
+            categoryType = CategoryType.HISTORIC_SITE;
+        }
+        if(cat3.equals("A02010600")){
+            categoryType = CategoryType.FOLK_VILLAGE;
+        }
+
+
+        for (PlaceDTO placeDto : integrationPlaceList) {
+            Point point = new Point(placeDto.getMapx(), placeDto.getMapy());
+
+            Place place = Place.builder()
+                    .title(placeDto.getTitle())
+                    .detail(placeDto.getOverview())
+                    .image(placeDto.getFirstimage())
+                    .address(placeDto.getAddr1())
+                    .location(point)
+                    .category(categoryType)
+//                    .restDate(placeDto.getRestDate)
+                    .build();
+        }
     }
 }
