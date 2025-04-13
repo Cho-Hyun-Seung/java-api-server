@@ -2,9 +2,11 @@ package com.toki.openapiserver.place.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.toki.openapiserver.area.domain.Area;
 import com.toki.openapiserver.common.record.ApiResponse;
 import com.toki.openapiserver.common.record.ApiResponseHeader;
 import com.toki.openapiserver.area.repository.AreaRepository;
+import com.toki.openapiserver.common.record.Items;
 import com.toki.openapiserver.common.record.Response;
 
 import com.toki.openapiserver.place.domain.CategoryType;
@@ -13,11 +15,15 @@ import com.toki.openapiserver.place.dto.areabaseplace.Item;
 import com.toki.openapiserver.place.dto.detail.PlaceDTO;
 import com.toki.openapiserver.place.repository.PlaceRepository;
 import lombok.RequiredArgsConstructor;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.geo.Point;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
@@ -28,6 +34,9 @@ import java.util.List;
 public class PlaceService {
     private final PlaceRepository placeRepository;
     private final AreaRepository areaRepository;
+    GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326); // WGS84
+    private final ObjectMapper mapper;
+
 
     @Value("${open-api.api-key}")
     private String openApiKey;
@@ -61,7 +70,6 @@ public class PlaceService {
             throw new RuntimeException(header.resultMsg());
         }
 
-        ObjectMapper mapper = new ObjectMapper();
 
         List<Item> placeList = mapper.convertValue(response.body().items().item(),
                 new TypeReference<List<Item>>() {
@@ -125,8 +133,13 @@ public class PlaceService {
                 throw new RuntimeException(header.resultMsg());
             }
 
-            ObjectMapper mapper = new ObjectMapper();
+            Items items = response.body().items();
+            if (items == null || items.item() == null) {
+                // 빈 리스트 처리 또는 적절한 예외 처리
+                continue; // 또는 다음 로직으로 처리
+            }
 
+    
             List<com.toki.openapiserver.place.dto.detail.common.Item> placeInfo = mapper.convertValue(response.body().items().item(),
                     new TypeReference<List<com.toki.openapiserver.place.dto.detail.common.Item>>() {
                     });
@@ -169,21 +182,20 @@ public class PlaceService {
                 throw new RuntimeException(header.resultMsg());
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-
+    
             if(category.equals(CategoryType.MUSEUM)){
                 List<com.toki.openapiserver.place.dto.detail.museum.Item> placeInfo = mapper.convertValue(response.body().items().item(),
                         new TypeReference<List<com.toki.openapiserver.place.dto.detail.museum.Item>>() {
                         });
 
-                place.setOverview(placeInfo.get(0).restdateculture());
+                place.setRestDate(placeInfo.get(0).restdateculture());
                 placeDtoList.add(place);
             }else{
                 List<com.toki.openapiserver.place.dto.detail.tourspot.Item> placeInfo = mapper.convertValue(response.body().items().item(),
                         new TypeReference<List<com.toki.openapiserver.place.dto.detail.tourspot.Item>>() {
                         });
 
-                place.setOverview(placeInfo.get(0).restdate());
+                place.setRestDate(placeInfo.get(0).restdate());
                 placeDtoList.add(place);
             }
         }
@@ -193,6 +205,7 @@ public class PlaceService {
     }
 
 
+    @Transactional
     public void insertPlace(int contentTypeId, String cat2, String cat3) {
         ArrayList<PlaceDTO> placeList = getPlace(contentTypeId, cat2, cat3);
         ArrayList<PlaceDTO> integrationPlaceList = getPlaceDetail(placeList);
@@ -207,10 +220,12 @@ public class PlaceService {
         if(cat3.equals("A02010600")){
             categoryType = CategoryType.FOLK_VILLAGE;
         }
+        ArrayList<PlaceDTO> integrationPlaceList2 = getPlaceRestDate(integrationPlaceList, categoryType);
 
-
-        for (PlaceDTO placeDto : integrationPlaceList) {
-            Point point = new Point(placeDto.getMapx(), placeDto.getMapy());
+        for (PlaceDTO placeDto : integrationPlaceList2) {
+            Area parentArea = areaRepository.findAreaByAreaCodeAndParentAreaIdIsNull(placeDto.getAreacode());
+            Area area = areaRepository.findByAreaCodeAndParentAreaId(placeDto.getSigungucode(), parentArea);
+            Point point = geometryFactory.createPoint(new Coordinate(placeDto.getMapx(), placeDto.getMapy()));
 
             Place place = Place.builder()
                     .title(placeDto.getTitle())
@@ -219,8 +234,13 @@ public class PlaceService {
                     .address(placeDto.getAddr1())
                     .location(point)
                     .category(categoryType)
-//                    .restDate(placeDto.getRestDate)
+                    .restDate(placeDto.getRestDate())
+                    .area(area)
                     .build();
+
+            placeRepository.save(place);
+//            System.out.println(place.toString());
         }
     }
+
 }

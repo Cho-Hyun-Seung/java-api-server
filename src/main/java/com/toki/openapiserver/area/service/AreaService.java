@@ -158,7 +158,7 @@ public class AreaService {
                     if (areaDto.getParentAreaId() != null) {
                         parentArea = areaRepository.findByAreaId(areaDto.getParentAreaId());
                     }
-                    area.setParentArea(parentArea);
+                    area.setParentAreaId(parentArea);
                     return area;
                 })
                 .toList();

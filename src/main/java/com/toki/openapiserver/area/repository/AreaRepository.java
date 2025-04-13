@@ -8,4 +8,10 @@ public interface AreaRepository extends JpaRepository<Area, Integer> {
     Area findByAreaName(String areaName);
 
     Area findByAreaId(Integer parentAreaId);
+
+    Area findByAreaCodeAndParentAreaId(int areaCode, Area parentAreaId);
+
+    Area findAreaByAreaCode(int areacode);
+
+    Area findAreaByAreaCodeAndParentAreaIdIsNull(int areacode);
 }

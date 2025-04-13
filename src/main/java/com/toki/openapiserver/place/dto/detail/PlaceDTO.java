@@ -17,5 +17,6 @@ public class PlaceDTO {
     private int areacode;
     private int sigungucode;
     private String contentTypeId;
+    private String restDate;
     private String overview;
 }
